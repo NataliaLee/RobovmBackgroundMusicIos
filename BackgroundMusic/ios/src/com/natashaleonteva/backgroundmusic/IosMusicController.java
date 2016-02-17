@@ -1,57 +1,110 @@
 package com.natashaleonteva.backgroundmusic;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.backends.iosrobovm.objectal.AVAudioPlayerDelegate;
+import com.badlogic.gdx.backends.iosrobovm.objectal.OALAudioTrack;
+import com.badlogic.gdx.backends.iosrobovm.objectal.OALSimpleAudio;
 
 import org.robovm.apple.avfoundation.AVAudioPlayer;
 import org.robovm.apple.dispatch.DispatchQueue;
 import org.robovm.apple.foundation.NSErrorException;
+import org.robovm.apple.foundation.NSObject;
 import org.robovm.apple.foundation.NSURL;
 
 import java.io.File;
+import java.util.Random;
 import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * Created by natashaleonteva on 05.02.16.
  */
 public class IosMusicController implements MusicController {
-    AVAudioPlayer player;
+    OALAudioTrack audioTrack;
     private Timer progressTimer=new Timer();
-
-    PlayerDelegate playerDelegate=new PlayerDelegate();
+    private double currentProgress;
+    private IProgressUpdater progressUpdater;
+    private double paused_time;
 
     @Override
     public void play() {
-        File file= Gdx.files.internal("sadday.mp3").file();
-        NSURL url=new NSURL(file);
-        try {
-            player=new AVAudioPlayer(url);
-            player.setDelegate(playerDelegate);
-            player.prepareToPlay();
-            DispatchQueue.getGlobalQueue(DispatchQueue.PRIORITY_HIGH, 0).async(new Runnable() {
-                @Override
-                public void run() {
-                    player.play();
-                }
-            });
-        } catch (NSErrorException e) {
-            e.printStackTrace();
+        if (audioTrack!=null && audioTrack.isPaused()) {
+            audioTrack.setCurrentTime(paused_time);
+            audioTrack.play();
+            progressUpdater=BackgroundMusic.getInstance().playerScreen;
+            startUpdatingProgress();
+            return;
         }
+        audioTrack=OALAudioTrack.create();
+        audioTrack.preloadFile("sadday.mp3");
+        audioTrack.setDelegate(new PlayerDelegate(this));
+        OALSimpleAudio.sharedInstance().setHonorSilentSwitch(false);
+        audioTrack.play();
+        progressUpdater=BackgroundMusic.getInstance().playerScreen;
+        startUpdatingProgress();
     }
 
     public void didPlayToFinish(){
-        System.out.println("did play to finish");
+        System.out.println("did play to finish.start again");
+        progressTimer.cancel();
+        currentProgress=0;
+        play();
     }
 
     @Override
     public void pause() {
-        player.pause();
+        if (audioTrack!=null){
+            paused_time=audioTrack.getCurrentTime();
+            audioTrack.setPaused(true);
+            progressTimer.cancel();
+        }
     }
 
     @Override
     public boolean isPlaying() {
-        if (player==null)
+        if (audioTrack==null)
             return false;
-        /*return player.getRate()==1.0;*/
-        return player.isPlaying();
+        return !audioTrack.isPaused();
+    }
+
+    @Override
+    public void scrollTo(int time) {
+        if (audioTrack==null)
+            play();
+        audioTrack.setCurrentTime(time);
+        currentProgress=audioTrack.getCurrentTime();
+        if (audioTrack.isPaused()) {
+            audioTrack.play();
+            startUpdatingProgress();
+        }
+    }
+
+    private void startUpdatingProgress(){
+        System.out.println(" startUpdatingProgress");
+        progressTimer.cancel();
+        progressTimer=new Timer();
+        progressTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                updateProgress();
+            }
+        }, 0, 500);
+    }
+
+    private void updateProgress(){
+        System.out.println("update progress " + audioTrack.isPaused());
+        if (audioTrack.isPaused() || progressUpdater==null) {
+            progressTimer.cancel();
+        }
+        currentProgress=audioTrack.getCurrentTime();
+        System.out.println(" updateProgress " + currentProgress);
+        if(progressUpdater!=null)
+            progressUpdater.updateProgress((int)currentProgress);
+    }
+
+    public void setProgressUpdater(IProgressUpdater progressUpdater) {
+        this.progressUpdater = progressUpdater;
+        if (audioTrack!=null)
+            startUpdatingProgress();
     }
 }

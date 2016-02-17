@@ -11,4 +11,5 @@ public interface MusicController {
     void pause();
     void play();
     boolean isPlaying();
+    void scrollTo(int time);
 }

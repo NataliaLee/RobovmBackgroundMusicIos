@@ -12,6 +12,8 @@ public class BackgroundMusic extends Game {
 	SpriteBatch batch;
 	private static BackgroundMusic instance=new BackgroundMusic();
 	public MusicController musicController;
+	public PlayerScreen playerScreen;
+
 
 	public static BackgroundMusic getInstance(){
 		return instance;
@@ -23,7 +25,8 @@ public class BackgroundMusic extends Game {
 	@Override
 	public void create () {
 		batch = new SpriteBatch();
-		setScreen(new PlayerScreen());
+		playerScreen=new PlayerScreen();
+		setScreen(playerScreen);
 	}
 
 	@Override

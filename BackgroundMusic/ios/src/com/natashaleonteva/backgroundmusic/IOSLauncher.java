@@ -15,6 +15,9 @@ import org.robovm.objc.annotation.Method;
 import com.badlogic.gdx.LifecycleListener;
 import com.badlogic.gdx.backends.iosrobovm.IOSApplication;
 import com.badlogic.gdx.backends.iosrobovm.IOSApplicationConfiguration;
+import com.badlogic.gdx.backends.iosrobovm.objectal.ALBuffer;
+import com.badlogic.gdx.backends.iosrobovm.objectal.OALAudioSession;
+import com.badlogic.gdx.backends.iosrobovm.objectal.OALAudioTrack;
 import com.badlogic.gdx.backends.iosrobovm.objectal.OALSimpleAudio;
 import com.natashaleonteva.backgroundmusic.BackgroundMusic;
 
@@ -26,14 +29,13 @@ public class IOSLauncher extends IOSApplication.Delegate {
     protected IOSApplication createApplication() {
 
         IOSApplicationConfiguration config = new IOSApplicationConfiguration();
-        initAudioSession();
+        //initAudioSession();
         BackgroundMusic.getInstance().setMusicController(iosMusicController);
         iosApplication= new IOSApplication(BackgroundMusic.getInstance(), config);
         iosApplication.addLifecycleListener(new LifecycleListener() {
             @Override
             public void pause() {
                 System.out.println("lifecircle pause");
-                //  OALAudioSession.sharedInstance().forceEndInterruption();
             }
 
             @Override
@@ -68,8 +70,9 @@ public class IOSLauncher extends IOSApplication.Delegate {
             e.printStackTrace();
         }
 
-        OALSimpleAudio.sharedInstance().setAllowIpod(true);
-        OALSimpleAudio.sharedInstance().setUseHardwareIfAvailable(false);
+      //  OALSimpleAudio.sharedInstance().setAllowIpod(true);
+        OALSimpleAudio.sharedInstance().setHonorSilentSwitch(false);
+       // OALSimpleAudio.sharedInstance().setUseHardwareIfAvailable(false);
         setObservers();
     }
 
@@ -93,9 +96,9 @@ public class IOSLauncher extends IOSApplication.Delegate {
 
     @Override
     public void willTerminate (UIApplication uiApp) {
-        UIApplication.getSharedApplication().endReceivingRemoteControlEvents();
+       // UIApplication.getSharedApplication().endReceivingRemoteControlEvents();
         //UIApplication.getSharedApplication().unregisterForRemoteNotifications();
-        removeObservers();
+       // removeObservers();
         super.willTerminate(uiApp);
     }
     public static void main(String[] argv) {
@@ -108,11 +111,13 @@ public class IOSLauncher extends IOSApplication.Delegate {
     public void didBecomeActive (UIApplication application){
         super.didBecomeActive(application);
         System.out.println("didbecomeactive");
+        iosMusicController.setProgressUpdater(BackgroundMusic.getInstance().playerScreen);
     }
 
     @Override
     public void willResignActive(UIApplication uiApp){
         System.out.println("willResignActive(background)");
+        iosMusicController.setProgressUpdater(null);
         super.willResignActive(uiApp);
     }
 
